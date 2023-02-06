@@ -1,0 +1,158 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type Order {
+  id: ID!
+  table: Int!
+  status: ValidOrderStatus!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  orderItems: [OrderItem!]!
+  createdBy: User!
+  updatedBy: User!
+}
+
+"""All status allowed for the order"""
+enum ValidOrderStatus {
+  pending
+  inProgres
+  readyForDispacth
+  delivered
+  paid
+  completed
+  archived
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type OrderItem {
+  id: ID!
+  quantity: Int!
+  status: ValidOrderItemStatus!
+  item: Item!
+  order: Order!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  createdBy: User!
+  updatedBy: User!
+}
+
+enum ValidOrderItemStatus {
+  archived
+  active
+}
+
+type Item {
+  id: ID!
+  name: String!
+  description: String
+  price: Float!
+  status: ValidItemStatus!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  orderItems: OrderItem!
+  createdBy: User!
+  updatedBy: User!
+}
+
+enum ValidItemStatus {
+  inStock
+  outOfStock
+  archived
+  disabled
+}
+
+type User {
+  id: ID!
+  firstName: String!
+  lastName: String!
+  email: String!
+  password: String!
+  roles: [String!]!
+  isActive: Boolean!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  ordersCreated: [Order!]
+  ordersUpdated: [Order!]
+  itemsCreated: [Item!]!
+  itemsUpdated: [Item!]!
+}
+
+type Query {
+  users: [User!]!
+  user(id: ID!): User!
+  orders(offset: Int = 0, limit: Int = 10): [Order!]!
+  order(id: ID!): Order!
+  items(offset: Int = 0, limit: Int = 10): [Item!]!
+  item(id: ID!): Item!
+  orderItem(id: ID!): OrderItem!
+}
+
+type Mutation {
+  updateUser(updateUserInput: UpdateUserInput!): User!
+  removeUser(id: ID!): User!
+  createOrder(createOrderInput: CreateOrderInput!): Order!
+  updateOrder(updateOrderInput: UpdateOrderInput!): Order!
+  removeOrder(id: ID!): Order!
+  createItem(createItemInput: CreateItemInput!): Item!
+  updateItem(updateItemInput: UpdateItemInput!): Item!
+  removeItem(id: ID!): Item!
+  createOrderItem(createOrderItemInput: CreateOrderItemInput!): OrderItem!
+  updateOrderItem(updateOrderItemInput: UpdateOrderItemInput!): OrderItem!
+  removeOrderItem(id: ID!): OrderItem!
+  runSeed: Boolean!
+}
+
+input UpdateUserInput {
+  firstName: String
+  lastName: String
+  email: String
+  password: String
+  roles: [String!]
+  id: ID!
+}
+
+input CreateOrderInput {
+  table: Float!
+  status: ValidOrderStatus! = pending
+}
+
+input UpdateOrderInput {
+  table: Float
+  status: ValidOrderStatus = pending
+  id: ID!
+}
+
+input CreateItemInput {
+  name: String!
+  description: String
+  price: Float!
+  status: ValidItemStatus!
+}
+
+input UpdateItemInput {
+  name: String
+  description: String
+  price: Float
+  status: ValidItemStatus
+  id: ID!
+}
+
+input CreateOrderItemInput {
+  quantity: Int!
+  status: ValidOrderItemStatus!
+  itemId: ID!
+  orderId: ID!
+}
+
+input UpdateOrderItemInput {
+  quantity: Int
+  status: ValidOrderItemStatus
+  itemId: ID
+  orderId: ID
+  id: ID!
+}
