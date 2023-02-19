@@ -1,6 +1,9 @@
+import { AuthResponse } from '@/types/shared';
+import jwtDecode from 'jwt-decode';
 import { AuthOptions } from 'next-auth';
 import NextAuth from 'next-auth/next';
 import CredentialsProvider from 'next-auth/providers/credentials';
+import { comandaApi } from '../../../api/comandaApi';
 
 export const authOptions: AuthOptions = {
   providers: [
@@ -18,40 +21,74 @@ export const authOptions: AuthOptions = {
           placeholder: '*******',
         },
       },
-      async authorize(credentials) {
-        return await new Promise(() => true);
+      authorize: async (credentials) => {
+        const { data } = await comandaApi.post<AuthResponse>(
+          '/auth/login',
+          credentials
+        );
+        // console.log(response)
+
+        return {
+          ...data.user,
+          accessToken: data.token,
+        };
       },
     }),
   ],
   jwt: {},
+
   session: {
-    maxAge: 2592000,
+    // maxAge: 2592000,
     strategy: 'jwt',
-    updateAge: 86400,
+    // updateAge: 86400,
   },
   pages: {
     signIn: '/auth/login',
     newUser: '/auth/register',
+    error: '/auth/login',
   },
   callbacks: {
-    async jwt({ token, account, user }) {
-      if (account) {
-        token.accessToken = account.access_token;
-        switch (account.type) {
-          case 'oauth':
-            token.user = null; // TODO: implement the endpoint
-            break;
-          case 'credentials':
-            token.user = user;
-        }
+    jwt: async ({ token, account, user }) => {
+      let newToken = { ...token };
+      if (user) {
+        newToken = {
+          ...token,
+          user,
+          accessTokenExpiry: jwtDecode(user.accessToken),
+        };
       }
-      return token;
+      const shouldRefreshTime = Math.round(
+        newToken.accessTokenExpiry.exp - Date.now() / 1000 - 60 * 10
+      );
+
+      if (shouldRefreshTime > 0) {
+        return newToken;
+      }
+
+      const {
+        data: { token: refreshedToken },
+      } = await comandaApi.post<AuthResponse>(
+        '/auth/refresh',
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${newToken.accessToken}`,
+          },
+        }
+      );
+
+      return {
+        ...newToken,
+        accessToken: refreshedToken,
+        accessTokenExpiry: jwtDecode(refreshedToken),
+      };
     },
-    async session({session, token, user}) {
-        session.accessToken = token.accessToken as string;
-        session.user = token.user as any
-        return session;
-    }
+    session: async ({ session, token, user }) => {
+      const { accessToken, user: userToken } = token;
+      const newSession = { ...session, accessToken, user: userToken };
+
+      return newSession;
+    },
   },
 };
 
